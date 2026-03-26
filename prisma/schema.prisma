@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  events      Event[]
+  cases       CaseStudy[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  type        String   // "FILING", "SEBI", "NEWS", "EARNINGS"
+  title       String
+  date        DateTime
+  content     String
+  sourceUrl   String?
+  teachabilityScore Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CaseStudy {
+  id            String   @id @default(uuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  title         String
+  hook          String
+  background    String
+  situation     String
+  dilemma       String
+  teachingNote  String
+  exhibits      FinancialExhibit[]
+  questions     DiscussionQuestion[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FinancialExhibit {
+  id          String   @id @default(uuid())
+  caseStudyId String
+  caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id])
+  title       String
+  chartType   String   // "BAR", "LINE", "TABLE"
+  data        String   // JSON stringified array of data
+  createdAt   DateTime @default(now())
+}
+
+model DiscussionQuestion {
+  id          String   @id @default(uuid())
+  caseStudyId String
+  caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id])
+  question    String
+  createdAt   DateTime @default(now())
+}
