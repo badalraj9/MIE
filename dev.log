@@ -1,0 +1,140 @@
+
+> my-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+- Environments: .env
+✓ Ready in 618ms
+
+○ Compiling / ...
+ GET / 200 in 4.3s (next.js: 3.8s, application-code: 496ms)
+ GET / 200 in 214ms (next.js: 6ms, application-code: 208ms)
+○ Compiling /cases/[id] ...
+Error: Route "/cases/[id]" used `params.id`. `params` is a Promise and must be unwrapped with `await` or `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at CaseStudyPage (src/app/cases/[id]/page.tsx:15:25)
+  13 | }) {
+  14 |   const caseStudy = await prisma.caseStudy.findUnique({
+> 15 |     where: { id: params.id },
+     |                         ^
+  16 |     include: {
+  17 |       company: true,
+  18 |       exhibits: true,
+⨯ Error [PrismaClientValidationError]:
+Invalid `prisma.caseStudy.findUnique()` invocation in
+/app/.next/dev/server/chunks/ssr/[root-of-the-server]__0cpbcwd._.js:166:46
+
+  163 ;
+  164 const prisma = new {imported module [externals]/@prisma/client}["PrismaClient"]();
+  165 async function CaseStudyPage({ params }) {
+→ 166     const caseStudy = await prisma.caseStudy.findUnique({
+            where: {
+              id: undefined,
+          ?   AND?: CaseStudyWhereInput | CaseStudyWhereInput[],
+          ?   OR?: CaseStudyWhereInput[],
+          ?   NOT?: CaseStudyWhereInput | CaseStudyWhereInput[],
+          ?   companyId?: StringFilter | String,
+          ?   title?: StringFilter | String,
+          ?   hook?: StringFilter | String,
+          ?   background?: StringFilter | String,
+          ?   situation?: StringFilter | String,
+          ?   dilemma?: StringFilter | String,
+          ?   teachingNote?: StringFilter | String,
+          ?   createdAt?: DateTimeFilter | DateTime,
+          ?   updatedAt?: DateTimeFilter | DateTime,
+          ?   company?: CompanyRelationFilter | CompanyWhereInput,
+          ?   exhibits?: FinancialExhibitListRelationFilter,
+          ?   questions?: DiscussionQuestionListRelationFilter
+            },
+            include: {
+              company: true,
+              exhibits: true,
+              questions: true
+            }
+          })
+
+Argument `where` of type CaseStudyWhereUniqueInput needs at least one of `id` arguments. Available options are marked with ?.
+    at <unknown> (src/app/cases/[id]/page.tsx:14:44)
+    at async CaseStudyPage (src/app/cases/[id]/page.tsx:14:21)
+  12 |   params: { id: string };
+  13 | }) {
+> 14 |   const caseStudy = await prisma.caseStudy.findUnique({
+     |                                            ^
+  15 |     where: { id: params.id },
+  16 |     include: {
+  17 |       company: true, {
+  clientVersion: '5.22.0',
+  digest: '2188241338'
+}
+ GET /cases/01091e2e-6932-4b31-84cf-0508b0dac4bd 200 in 5.6s (next.js: 5.4s, application-code: 217ms)
+[browser] Uncaught PrismaClientValidationError:
+Invalid `prisma.caseStudy.findUnique()` invocation in
+/app/.next/dev/server/chunks/ssr/[root-of-the-server]__0cpbcwd._.js:166:46
+
+  163 ;
+  164 const prisma = new __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f40$prisma$2f$client$29$__["PrismaClient"]();
+  165 async function CaseStudyPage({ params }) {
+→ 166     const caseStudy = await prisma.caseStudy.findUnique({
+            where: {
+              id: undefined,
+          ?   AND?: CaseStudyWhereInput | CaseStudyWhereInput[],
+          ?   OR?: CaseStudyWhereInput[],
+          ?   NOT?: CaseStudyWhereInput | CaseStudyWhereInput[],
+          ?   companyId?: StringFilter | String,
+          ?   title?: StringFilter | String,
+          ?   hook?: StringFilter | String,
+          ?   background?: StringFilter | String,
+          ?   situation?: StringFilter | String,
+          ?   dilemma?: StringFilter | String,
+          ?   teachingNote?: StringFilter | String,
+          ?   createdAt?: DateTimeFilter | DateTime,
+          ?   updatedAt?: DateTimeFilter | DateTime,
+          ?   company?: CompanyRelationFilter | CompanyWhereInput,
+          ?   exhibits?: FinancialExhibitListRelationFilter,
+          ?   questions?: DiscussionQuestionListRelationFilter
+            },
+            include: {
+              company: true,
+              exhibits: true,
+              questions: true
+            }
+          })
+
+Argument `where` of type CaseStudyWhereUniqueInput needs at least one of `id` arguments. Available options are marked with ?.
+    at <unknown> (src/app/cases/[id]/page.tsx:14:44)
+    at  CaseStudyPage (src/app/cases/[id]/page.tsx:14:21)
+  12 |   params: { id: string };
+  13 | }) {
+> 14 |   const caseStudy = await prisma.caseStudy.findUnique({
+     |                                            ^
+  15 |     where: { id: params.id },
+  16 |     include: {
+  17 |       company: true,
+✓ Compiled in 39ms
+ GET / 200 in 83ms (next.js: 6ms, application-code: 78ms)
+ GET /cases/01091e2e-6932-4b31-84cf-0508b0dac4bd 200 in 109ms (next.js: 35ms, application-code: 75ms)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
