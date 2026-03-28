@@ -2,65 +2,74 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// NOTE: Change provider to "postgresql" and add directUrl when you have your Supabase/Neon URL.
+// Current: SQLite for local development.
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL") -- uncomment for Supabase
 }
 
 model Company {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String      @id @default(uuid())
+  name        String      @unique
   description String?
+  scrapeUrls  String?     // JSON-encoded array: '["https://...","https://..."]'
   events      Event[]
   cases       CaseStudy[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Event {
-  id          String   @id @default(uuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
-  type        String   // "FILING", "SEBI", "NEWS", "EARNINGS"
-  title       String
-  date        DateTime
-  content     String
-  sourceUrl   String?
-  teachabilityScore Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id])
+  type               String   // "FILING", "SEBI", "NEWS", "EARNINGS"
+  title              String
+  date               DateTime
+  content            String
+  sourceUrl          String?
+  teachabilityScore  Int?
+  teachabilityReason String?  // LLM explanation of why score was given
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([companyId, sourceUrl]) // URL-level deduplication
 }
 
 model CaseStudy {
-  id            String   @id @default(uuid())
+  id            String              @id @default(uuid())
   companyId     String
-  company       Company  @relation(fields: [companyId], references: [id])
+  company       Company             @relation(fields: [companyId], references: [id])
   title         String
   hook          String
   background    String
   situation     String
   dilemma       String
   teachingNote  String
+  status        String              @default("DRAFT")  // "DRAFT" | "PUBLISHED"
+  model         String?             // which LLM model generated this case
   exhibits      FinancialExhibit[]
   questions     DiscussionQuestion[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 }
 
 model FinancialExhibit {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   caseStudyId String
-  caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id])
+  caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
   title       String
-  chartType   String   // "BAR", "LINE", "TABLE"
-  data        String   // JSON stringified array of data
-  createdAt   DateTime @default(now())
+  chartType   String    // "BAR", "LINE", "TABLE"
+  data        String    // JSON stringified array of data
+  createdAt   DateTime  @default(now())
 }
 
 model DiscussionQuestion {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   caseStudyId String
-  caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id])
+  caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
   question    String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 }

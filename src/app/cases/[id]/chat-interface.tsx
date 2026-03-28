@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 
 type CaseStudyWithCompany = CaseStudy & {
   company: Company;
@@ -31,14 +32,13 @@ export default function ChatInterface({ caseContext }: ChatInterfaceProps) {
       {
         id: "welcome-msg",
         role: "assistant",
-        content: `Welcome to the class. We are analyzing the ${caseContext.company.name} case today. You've read about their dilemma regarding ${caseContext.dilemma.substring(0, 100)}... Tell me, as a protagonist in this situation, what is your primary strategic imperative right now?`,
+        content: `Welcome to the class. We are analyzing the **${caseContext.company.name}** case today. You've read about their dilemma regarding *${caseContext.dilemma.substring(0, 100)}...*\n\nAs the protagonist, what is your **primary strategic imperative** right now?`,
       },
     ],
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -53,9 +53,7 @@ export default function ChatInterface({ caseContext }: ChatInterfaceProps) {
           {messages.map((m) => (
             <div
               key={m.id}
-              className={`flex w-full ${
-                m.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`flex w-full ${m.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`flex max-w-[85%] gap-3 rounded-2xl px-4 py-3 ${
@@ -74,9 +72,17 @@ export default function ChatInterface({ caseContext }: ChatInterfaceProps) {
                   <span className={`text-xs font-semibold ${m.role === "user" ? "text-slate-300" : "text-slate-500"}`}>
                     {m.role === "user" ? "You" : "Professor"}
                   </span>
-                  <div className="prose-sm whitespace-pre-wrap font-sans leading-relaxed">
-                    {m.content}
-                  </div>
+                  {m.role === "assistant" ? (
+                    <div className="prose prose-sm prose-slate max-w-none font-sans leading-relaxed
+                      prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-strong:text-slate-800
+                      prose-headings:text-slate-800 prose-headings:font-semibold">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className="text-sm font-sans leading-relaxed whitespace-pre-wrap">
+                      {m.content}
+                    </div>
+                  )}
                 </div>
 
                 {m.role === "user" && (
@@ -87,29 +93,27 @@ export default function ChatInterface({ caseContext }: ChatInterfaceProps) {
               </div>
             </div>
           ))}
+
           {isLoading && (
-             <div className="flex w-full justify-start">
+            <div className="flex w-full justify-start">
               <div className="flex max-w-[85%] gap-3 rounded-2xl px-4 py-3 bg-slate-100 text-slate-800 border border-slate-200">
-                 <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 animate-pulse">
-                    <BrainCircuit size={14} />
-                 </div>
-                 <div className="flex items-center space-x-1 mt-2">
-                    <div className="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="h-2 w-2 bg-slate-400 rounded-full animate-bounce"></div>
-                 </div>
+                <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 animate-pulse">
+                  <BrainCircuit size={14} />
+                </div>
+                <div className="flex items-center space-x-1 mt-2">
+                  <div className="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="h-2 w-2 bg-slate-400 rounded-full animate-bounce"></div>
+                </div>
               </div>
-             </div>
+            </div>
           )}
         </div>
       </ScrollArea>
 
       {/* Input Area */}
       <div className="border-t border-slate-200 bg-white p-4 shrink-0">
-        <form
-          onSubmit={handleSubmit}
-          className="flex w-full items-center space-x-2"
-        >
+        <form onSubmit={handleSubmit} className="flex w-full items-center space-x-2">
           <Input
             value={input}
             onChange={handleInputChange}

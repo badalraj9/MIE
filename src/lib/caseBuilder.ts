@@ -1,98 +1,174 @@
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { prisma } from "../lib/prisma";
-import { caseStudySchema } from "../lib/schema";
+import { anthropic } from "@ai-sdk/anthropic";
+import { createGroq } from "@ai-sdk/groq";
+import { z } from "zod";
+import { prisma } from "./prisma";
+import { caseStudySchema, type CaseStudyGen } from "./schema";
+import {
+  SCORING_MODEL,
+  GENERATION_MODEL,
+  ANTHROPIC_MODEL,
+  GROQ_MODEL,
+  TEACHABILITY_THRESHOLD,
+  MAX_GENERATION_TOKENS,
+} from "./config";
 
-export async function triggerAndBuildCase(companyName: string) {
-  console.log(`\nEvaluating teachability for ${companyName}...`);
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-  // 1. Fetch Company & Events (The "Vector DB" Search Simulation)
+type SupportedModel = "gpt-4o" | "claude-3-5-sonnet" | "llama-3-70b";
+
+// ─── Pre-generation Validation ───────────────────────────────────────────────
+
+const readinessSchema = z.object({
+  isReady: z.boolean(),
+  score: z.number().min(0).max(10),
+  gaps: z.array(z.string()),
+  recommendation: z.string(),
+});
+
+async function validateCaseReadiness(
+  companyName: string,
+  eventSummary: string
+): Promise<z.infer<typeof readinessSchema>> {
+  try {
+    const { object } = await generateObject({
+      model: openai(SCORING_MODEL),
+      schema: readinessSchema,
+      prompt: `You are a Wharton case development editor. Assess whether the following events provide sufficient material to write a rigorous Wharton MBA case study about ${companyName}.
+
+A strong Wharton case requires:
+1. A clear protagonist facing a high-stakes decision
+2. Quantitative financial data (revenue, costs, funding rounds, debt, etc.)
+3. Stakeholder conflict or ethical tension
+4. Regulatory or governance context
+5. Strategic options with genuine trade-offs
+
+Events collected so far:
+${eventSummary}
+
+Rate readiness 0–10. Is this ready to be a Wharton case?`,
+    });
+    return object;
+  } catch {
+    return { isReady: true, score: 5, gaps: [], recommendation: "Validation skipped." };
+  }
+}
+
+// ─── Wharton System Prompt ────────────────────────────────────────────────────
+
+function buildSystemPrompt(contextData: string): string {
+  return `You are a distinguished Wharton Business School case study author with 20 years of experience writing cases for HBS, Wharton, and INSEAD.
+
+## YOUR TASK
+Write a rigorous, publication-ready Wharton MBA case study based ONLY on the provided source events.
+
+## STRICT AUTHORSHIP RULES
+1. **No hallucination**: Every financial figure, date, and factual claim must trace directly to the source events.
+2. **Protagonist framing**: Written in second person for the hook, placing the reader at the moment of crisis.
+3. **Genuine dilemma**: No obvious right answer. Both options must have compelling arguments and significant risks.
+4. **Academic rigour**: Background and situation must read like Economist-quality journalism — precise, evidence-based.
+5. **Teaching note is confidential**: Written for a professor colleague, explaining how to orchestrate the debate.
+6. **Financial exhibits**: Extract real metrics from the text — every number must map to a specific event.
+
+## SOURCE EVENTS
+${contextData}`;
+}
+
+// ─── Main Entry Point ─────────────────────────────────────────────────────────
+
+export async function triggerAndBuildCase(
+  companyName: string,
+  options: { modelId?: SupportedModel; skipThresholdCheck?: boolean } = {}
+) {
+  const { modelId = (GENERATION_MODEL as SupportedModel) ?? "gpt-4o", skipThresholdCheck = false } = options;
+
+  console.log(`\n🔍 Evaluating case readiness for ${companyName}...`);
+
   const company = await prisma.company.findUnique({
     where: { name: companyName },
-    include: {
-      events: {
-        orderBy: { date: 'asc' }
-      }
-    }
+    include: { events: { orderBy: { date: "asc" } } },
   });
 
   if (!company || company.events.length === 0) {
-    console.log("Not enough data to trigger a case.");
-    return;
+    throw new Error(`No events found for "${companyName}". Run the scraper first.`);
   }
 
-  // 2. Trigger Logic ("Recognizing Teachability")
-  // For the MVP, we assume a simple rule: If the sum of teachability scores over a
-  // 3-year period crosses 25, we trigger the case builder.
   const cumulativeScore = company.events.reduce((sum, e) => sum + (e.teachabilityScore || 0), 0);
+  console.log(`  Cumulative teachability score: ${cumulativeScore} (threshold: ${TEACHABILITY_THRESHOLD})`);
 
-  if (cumulativeScore < 25) {
-    console.log(`Cumulative Score (${cumulativeScore}) is below threshold (25). No case triggered.`);
-    return;
+  if (!skipThresholdCheck && cumulativeScore < TEACHABILITY_THRESHOLD) {
+    throw new Error(
+      `Teachability threshold not met (score: ${cumulativeScore}/${TEACHABILITY_THRESHOLD}). ` +
+      `Use skipThresholdCheck=true to override.`
+    );
   }
 
-  console.log(`TRIGGERED! Teachability threshold crossed (${cumulativeScore}). Generating Wharton Case Study...`);
+  const contextData = company.events
+    .map((e) => {
+      const reason = (e as Record<string, unknown>).teachabilityReason as string | undefined;
+      return (
+        `[${e.date.toISOString().split("T")[0]} — ${e.type}] ${e.title}\n` +
+        `Source: ${e.sourceUrl || "N/A"}\n` +
+        `Teachability: ${e.teachabilityScore}/10${reason ? ` — ${reason}` : ""}\n` +
+        `Content: ${e.content}`
+      );
+    })
+    .join("\n\n---\n\n");
 
-  // 3. Multi-Agent Case Builder ("Structuring the Output")
-  // We feed the structured events to the Writer Agent (LLM).
-  const contextData = company.events.map(e =>
-    `[${e.date.toISOString().split('T')[0]} - ${e.type}] ${e.title}\nSource: ${e.sourceUrl}\nContent: ${e.content}`
-  ).join("\n\n");
+  const eventSummary = company.events
+    .map((e) => `• [${e.type}] ${e.title} (score: ${e.teachabilityScore}/10)`)
+    .join("\n");
 
-  const systemPrompt = `
-You are a world-class Wharton business school professor. Your task is to write a highly rigorous, 7-part pedagogical case study based ONLY on the provided events and data.
+  const readiness = await validateCaseReadiness(companyName, eventSummary);
+  console.log(`  Readiness: ${readiness.score}/10 — ${readiness.recommendation}`);
+  if (readiness.gaps.length > 0) readiness.gaps.forEach((g) => console.log(`    - ${g}`));
 
-**STRICT RULES:**
-1. You must not hallucinate any financial figures. Use only the data provided in the text.
-2. Every claim must have a direct connection to the underlying events.
-3. The 'dilemma' must be a specific, difficult decision faced by the leadership with conflicting pressures and no obvious right answer.
-4. The 'teachingNote' must remain private and explain to another professor how to guide the class debate using the exhibits.
-5. Extract relevant financial or growth metrics from the text into the 'exhibits' array. Use standard JSON formatting for the 'data' field.
+  if (!readiness.isReady && !skipThresholdCheck) {
+    throw new Error(`Insufficient data. Gaps: ${readiness.gaps.join(", ")}. Use skipThresholdCheck=true to override.`);
+  }
 
-**DATA CONTEXT:**
-${contextData}
-`;
+  console.log(`\n🏫 Generating via ${modelId}...`);
+  const prompt = `Write the complete, publication-ready Wharton case study for ${companyName}. Follow the schema precisely.`;
+  const system = buildSystemPrompt(contextData);
+  let generatedCase: CaseStudyGen;
+
+  if (modelId === "claude-3-5-sonnet" && process.env.ANTHROPIC_API_KEY) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await generateObject({ model: anthropic(ANTHROPIC_MODEL) as any, schema: caseStudySchema, system, prompt, maxTokens: MAX_GENERATION_TOKENS });
+    generatedCase = r.object as CaseStudyGen;
+  } else if (modelId === "llama-3-70b" && process.env.GROQ_API_KEY) {
+    const groqClient = createGroq({ apiKey: process.env.GROQ_API_KEY });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await generateObject({ model: groqClient(GROQ_MODEL) as any, schema: caseStudySchema, system, prompt, maxTokens: MAX_GENERATION_TOKENS });
+    generatedCase = r.object as CaseStudyGen;
+  } else {
+    const r = await generateObject({ model: openai(GENERATION_MODEL), schema: caseStudySchema, system, prompt, maxTokens: MAX_GENERATION_TOKENS });
+    generatedCase = r.object;
+  }
+
+  console.log(`  ✅ Generated: "${generatedCase.title}"`);
+
+  const caseData: Parameters<typeof prisma.caseStudy.create>[0]["data"] = {
+    companyId: company.id,
+    title: generatedCase.title,
+    hook: generatedCase.hook,
+    background: generatedCase.background,
+    situation: generatedCase.situation,
+    dilemma: generatedCase.dilemma,
+    teachingNote: generatedCase.teachingNote,
+    exhibits: { create: generatedCase.exhibits.map((ex) => ({ title: ex.title, chartType: ex.chartType, data: ex.data })) },
+    questions: { create: generatedCase.questions.map((q) => ({ question: q.question })) },
+  };
 
   try {
-    const { object: generatedCase } = await generateObject({
-      model: openai("gpt-4o"), // Requires OPENAI_API_KEY in .env
-      schema: caseStudySchema,
-      prompt: "Based on the provided context, build the 7-part Wharton case study.",
-      system: systemPrompt,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (caseData as any).status = "DRAFT";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (caseData as any).model = modelId;
+  } catch { /* skip if schema hasn't migrated yet */ }
 
-    console.log("\nCase Generated Successfully! Saving to Database...");
-
-    // 4. Save to Database
-    const savedCase = await prisma.caseStudy.create({
-      data: {
-        companyId: company.id,
-        title: generatedCase.title,
-        hook: generatedCase.hook,
-        background: generatedCase.background,
-        situation: generatedCase.situation,
-        dilemma: generatedCase.dilemma,
-        teachingNote: generatedCase.teachingNote,
-        exhibits: {
-          create: generatedCase.exhibits.map(ex => ({
-            title: ex.title,
-            chartType: ex.chartType,
-            data: ex.data,
-          }))
-        },
-        questions: {
-          create: generatedCase.questions.map(q => ({
-            question: q.question
-          }))
-        }
-      }
-    });
-
-    console.log(`Case Study Saved: ID ${savedCase.id}`);
-    return savedCase;
-
-  } catch (error) {
-    console.error("Failed to build case:", error);
-    throw error;
-  }
+  const savedCase = await prisma.caseStudy.create({ data: caseData, include: { company: true } });
+  console.log(`  💾 Saved as DRAFT: ${savedCase.id}\n`);
+  return savedCase;
 }
