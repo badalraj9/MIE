@@ -2,19 +2,38 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// NOTE: Change provider to "postgresql" and add directUrl when you have your Supabase/Neon URL.
-// Current: SQLite for local development.
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL") -- uncomment for Supabase
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  role         String        @default("PROFESSOR") // "PROFESSOR" | "ADMIN"
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  sessions     Session[]
+  debates     DebateSession[]
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  persistent  Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 model Company {
   id          String      @id @default(uuid())
   name        String      @unique
   description String?
-  scrapeUrls  String?     // JSON-encoded array: '["https://...","https://..."]'
+  scrapeUrls  String?     // JSON-encoded array
   events      Event[]
   cases       CaseStudy[]
   createdAt   DateTime    @default(now())
@@ -31,29 +50,30 @@ model Event {
   content            String
   sourceUrl          String?
   teachabilityScore  Int?
-  teachabilityReason String?  // LLM explanation of why score was given
+  teachabilityReason String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  @@unique([companyId, sourceUrl]) // URL-level deduplication
+  @@unique([companyId, sourceUrl])
 }
 
 model CaseStudy {
-  id            String              @id @default(uuid())
-  companyId     String
-  company       Company             @relation(fields: [companyId], references: [id])
-  title         String
-  hook          String
-  background    String
-  situation     String
-  dilemma       String
-  teachingNote  String
-  status        String              @default("DRAFT")  // "DRAFT" | "PUBLISHED"
-  model         String?             // which LLM model generated this case
-  exhibits      FinancialExhibit[]
-  questions     DiscussionQuestion[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  id           String              @id @default(uuid())
+  companyId    String
+  company      Company             @relation(fields: [companyId], references: [id])
+  title        String
+  hook         String
+  background   String
+  situation    String
+  dilemma      String
+  teachingNote String
+  status       String              @default("DRAFT") // "DRAFT" | "PUBLISHED"
+  model        String?
+  exhibits     FinancialExhibit[]
+  questions    DiscussionQuestion[]
+  views        Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 model FinancialExhibit {
@@ -62,7 +82,7 @@ model FinancialExhibit {
   caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
   title       String
   chartType   String    // "BAR", "LINE", "TABLE"
-  data        String    // JSON stringified array of data
+  data        String    // JSON stringified array
   createdAt   DateTime  @default(now())
 }
 
@@ -72,4 +92,66 @@ model DiscussionQuestion {
   caseStudy   CaseStudy @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
   question    String
   createdAt   DateTime  @default(now())
+}
+
+model DebateSession {
+  id                      String            @id @default(uuid())
+  userId                  String
+  user                    User              @relation(fields: [userId], references: [id])
+  topic                   String
+  contextData             String            // JSON string of all context gathered
+  status                  String            @default("ACTIVE") // "ACTIVE" | "COMPLETED" | "PAUSED"
+  currentRole             String            @default("CHALLENGER") // "CHALLENGER" | "DEFENDER" | "REGULATOR" | "INVESTOR" | "BOARD_MEMBER" | "COMPETITOR"
+  aiBehaviorAdjustments   String?           // AI learns from feedback - stores adjustments
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  completedAt             DateTime?
+  messages                DebateMessage[]
+  feedback                DebateFeedback[]
+}
+
+model DebateMessage {
+  id        String        @id @default(uuid())
+  sessionId String
+  session   DebateSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String        // "user" | "assistant"
+  content   String
+  aiRole    String?       // What role was AI playing: CHALLENGER, DEFENDER, etc.
+  createdAt DateTime      @default(now())
+}
+
+model DebateFeedback {
+  id          String        @id @default(uuid())
+  sessionId   String
+  session     DebateSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rating      Int           // 1-5 scale
+  notes       String?
+  createdAt   DateTime      @default(now())
+}
+
+model ChatInteraction {
+  id          String   @id @default(uuid())
+  caseStudyId String?
+  userId      String?
+  ipAddress   String
+  message     String
+  role        String   // "user" | "assistant"
+  createdAt   DateTime @default(now())
+}
+
+model Analytics {
+  id              String   @id @default(uuid())
+  eventType       String   // "CASE_VIEW" | "CASE_SHARE" | "CHAT_MESSAGE" | "EXPORT_PDF"
+  caseStudyId     String?
+  userId          String?
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+}
+
+model ResearchItem {
+  id          String   @id @default(uuid())
+  topic       String
+  content     String
+  type        String   @default("Analysis")
+  createdAt   DateTime @default(now())
 }

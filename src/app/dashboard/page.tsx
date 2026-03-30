@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Plus, BookOpen, Building2, TrendingUp, FileText, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import GenerateCaseButton from "./generate-case-button";
+import { BookOpen, Building2, TrendingUp, FileText, ExternalLink, Scroll, MessageSquarePlus, PenTool, Scale } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +24,6 @@ async function getDashboardData() {
   ]);
 
   const totalEvents = companies.reduce((sum, c) => sum + c._count.events, 0);
-
   return { companies, cases, totalEvents };
 }
 
@@ -37,168 +33,178 @@ export default async function DashboardPage() {
   const draftCount = cases.filter((c) => c.status === "DRAFT").length;
   const publishedCount = cases.filter((c) => c.status === "PUBLISHED").length;
 
+  const stats = [
+    { label: "Companies Watched", value: companies.length, icon: Building2, color: "bg-primary/10 text-primary" },
+    { label: "Events Ingested", value: totalEvents, icon: TrendingUp, color: "bg-chart-2/15 text-chart-2" },
+    { label: "Cases (Draft)", value: draftCount, icon: FileText, color: "bg-chart-3/15 text-chart-3" },
+    { label: "Cases (Published)", value: publishedCount, icon: BookOpen, color: "bg-chart-4/15 text-chart-4" },
+  ];
+
   return (
-    <div className="min-h-screen bg-neutral-50 font-sans">
-      {/* Header */}
-      <header className="border-b bg-slate-900 text-white px-8 py-5 shadow-sm">
+    <div className="min-h-screen">
+      <header className="relative border-b border-border/60 bg-card/60 backdrop-blur-sm px-6 py-6 md:px-10">
         <div className="mx-auto max-w-7xl flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-slate-400 mb-1">MIE Platform</p>
-            <h1 className="text-2xl font-bold font-serif">Professor Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+              <Scroll size={22} />
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">MIE Platform</p>
+              <h1 className="font-serif text-2xl font-bold">Research Library</h1>
+            </div>
           </div>
-          <Link href="/">
-            <Button variant="outline" size="sm" className="text-slate-300 border-slate-600 hover:bg-slate-800 hover:text-white">
-              <BookOpen size={14} className="mr-1.5" /> View Published Cases
-            </Button>
+          <Link
+            href="/"
+            className="group flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-medium transition-all hover:bg-secondary/80 border border-border"
+          >
+            <BookOpen size={14} />
+            <span>Research Hub</span>
+            <ExternalLink size={12} className="opacity-0 transition-opacity group-hover:opacity-100" />
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-8 py-10 space-y-10">
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Companies Watched", value: companies.length, icon: Building2 },
-            { label: "Events Ingested", value: totalEvents, icon: TrendingUp },
-            { label: "Cases (Draft)", value: draftCount, icon: FileText },
-            { label: "Cases (Published)", value: publishedCount, icon: BookOpen },
-          ].map(({ label, value, icon: Icon }) => (
-            <Card key={label} className="border-slate-200">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                  <Icon size={18} className="text-slate-600" />
+      <main className="mx-auto max-w-7xl px-6 py-10 md:px-10 space-y-10">
+        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map(({ label, value, icon: Icon, color }) => (
+            <div
+              key={label}
+              className="floating-tile group relative p-5"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${color} shadow-sm transition-transform group-hover:scale-105`}>
+                  <Icon size={20} />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-slate-900">{value}</div>
-                  <div className="text-xs text-slate-500">{label}</div>
+                <div className="flex-1">
+                  <div className="text-3xl font-bold tracking-tight">{value}</div>
+                  <div className="text-sm text-muted-foreground">{label}</div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-primary/20 opacity-0 transition-opacity group-hover:opacity-100" />
+            </div>
           ))}
-        </div>
-
-        {/* Companies Section */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold font-serif text-slate-900">Monitored Companies</h2>
-            <Link href="/dashboard/companies/new">
-              <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5">
-                <Plus size={14} /> Add Company
-              </Button>
-            </Link>
-          </div>
-
-          {companies.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-slate-200 p-12 text-center">
-              <Building2 size={32} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-slate-500 font-medium">No companies being monitored.</p>
-              <p className="text-slate-400 text-sm mt-1">Add a company and run the scraper to start collecting events.</p>
-              <Link href="/dashboard/companies/new" className="mt-4 inline-block">
-                <Button size="sm" className="bg-slate-900 text-white mt-4">Add First Company</Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-6 py-3 text-left">Company</th>
-                    <th className="px-6 py-3 text-left">Events</th>
-                    <th className="px-6 py-3 text-left">Cases</th>
-                    <th className="px-6 py-3 text-left">Last Event</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {companies.map((company, i) => (
-                    <tr
-                      key={company.id}
-                      className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}
-                    >
-                      <td className="px-6 py-4 font-semibold text-slate-900">{company.name}</td>
-                      <td className="px-6 py-4 text-slate-600">{company._count.events}</td>
-                      <td className="px-6 py-4 text-slate-600">{company._count.cases}</td>
-                      <td className="px-6 py-4 text-slate-500">
-                        {company.events[0]?.date
-                          ? new Date(company.events[0].date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-                          : "—"}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <GenerateCaseButton companyName={company.name} hasEvents={company._count.events > 0} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </section>
 
-        {/* Cases Section */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold font-serif text-slate-900">All Case Studies</h2>
+          <div className="floating-tile p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-lg">
+                  <MessageSquarePlus size={24} />
+                </div>
+                <div>
+                  <h2 className="font-serif text-xl font-bold">Debate Arena</h2>
+                  <p className="text-sm text-muted-foreground">Strategic peer analysis and discourse - instant context, real-time debate</p>
+                </div>
+              </div>
+              <Link
+                href="/debate"
+                className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+              >
+                <PenTool size={18} />
+                <span>Start Debate</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <div className="floating-tile p-12 text-center">
+            <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 mb-6">
+              <Scale size={40} className="text-primary" />
+            </div>
+            <h2 className="font-serif text-2xl font-bold mb-3">Strategic Debate Chamber</h2>
+            <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
+              Enter any topic, company, or scenario for instant strategic analysis. 
+              Engage in peer-level discourse with real-time challenge and perspective shifts.
+            </p>
+            <Link
+              href="/debate"
+              className="inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-lg font-medium text-primary-foreground shadow-xl shadow-primary/25 transition-all hover:scale-[1.02]"
+            >
+              <PenTool size={22} />
+              <span>Begin Session</span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold">All Case Studies</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Manage generated cases — edit drafts, publish for students</p>
+            </div>
           </div>
 
           {cases.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-slate-200 p-12 text-center">
-              <FileText size={32} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-slate-500 font-medium">No cases generated yet.</p>
-              <p className="text-slate-400 text-sm mt-1">
-                Add events for a company, then click "Generate Case" above.
+            <div className="floating-tile flex flex-col items-center justify-center py-20 text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary shadow-sm">
+                <FileText size={28} className="text-muted-foreground" />
+              </div>
+              <h3 className="font-serif text-xl font-semibold">No Cases Generated Yet</h3>
+              <p className="mt-2 max-w-md text-muted-foreground">
+                Add events for a company, then click &quot;Generate Case&quot; to create a Wharton-style case study.
               </p>
             </div>
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-6 py-3 text-left">Title</th>
-                    <th className="px-6 py-3 text-left">Company</th>
-                    <th className="px-6 py-3 text-left">Status</th>
-                    <th className="px-6 py-3 text-left">Model</th>
-                    <th className="px-6 py-3 text-left">Created</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cases.map((c, i) => (
-                    <tr
-                      key={c.id}
-                      className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}
-                    >
-                      <td className="px-6 py-4 font-medium text-slate-800 max-w-xs">
-                        <span className="line-clamp-1">{c.title}</span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-600">{c.company.name}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                          c.status === "PUBLISHED"
-                            ? "bg-green-50 text-green-700 ring-green-600/20"
-                            : "bg-amber-50 text-amber-700 ring-amber-600/20"
-                        }`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 text-xs font-mono">{c.model ?? "—"}</td>
-                      <td className="px-6 py-4 text-slate-500">
-                        {new Date(c.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </td>
-                      <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                        <Link href={`/dashboard/cases/${c.id}/edit`}>
-                          <Button variant="outline" size="sm" className="text-xs">Edit</Button>
-                        </Link>
-                        <Link href={`/cases/${c.id}`} target="_blank">
-                          <Button variant="ghost" size="sm" className="text-xs text-slate-500">
-                            <ExternalLink size={12} />
-                          </Button>
-                        </Link>
-                      </td>
+            <div className="floating-tile overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/60 bg-secondary/30 text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="px-6 py-4 text-left font-medium">Title</th>
+                      <th className="px-6 py-4 text-left font-medium">Company</th>
+                      <th className="px-6 py-4 text-left font-medium">Status</th>
+                      <th className="px-6 py-4 text-left font-medium">Model</th>
+                      <th className="px-6 py-4 text-left font-medium">Created</th>
+                      <th className="px-6 py-4 text-right font-medium">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {cases.map((c, i) => (
+                      <tr
+                        key={c.id}
+                        className={`border-b border-border/40 transition-colors hover:bg-secondary/20 ${i % 2 === 0 ? "bg-card" : "bg-secondary/10"}`}
+                      >
+                        <td className="px-6 py-4 max-w-xs">
+                          <span className="font-medium text-foreground line-clamp-1">{c.title}</span>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground">{c.company.name}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${
+                            c.status === "PUBLISHED"
+                              ? "bg-green-500/10 text-green-600 ring-green-500/20"
+                              : "bg-amber-500/10 text-amber-600 ring-amber-500/20"
+                          }`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{c.model ?? "—"}</td>
+                        <td className="px-6 py-4 text-muted-foreground text-sm">
+                          {new Date(c.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/dashboard/cases/${c.id}/edit`}
+                              className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium transition-all hover:bg-secondary/80 border border-border"
+                            >
+                              Edit
+                            </Link>
+                            <Link
+                              href={`/cases/${c.id}`}
+                              target="_blank"
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary transition-all hover:bg-secondary/80 border border-border"
+                            >
+                              <ExternalLink size={12} />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </section>

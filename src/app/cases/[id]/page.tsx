@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ArrowLeft, FileText, BarChart3, MessageSquarePlus, Share2, Download, Scroll } from "lucide-react";
 import ChatInterface from "./chat-interface";
 import FinancialCharts from "./financial-charts";
 import TeachingNoteToggle from "./teaching-note-toggle";
@@ -41,99 +40,133 @@ export default async function CaseStudyPage({
   }
 
   return (
-    <div className="flex h-screen w-full flex-col bg-neutral-50 md:flex-row overflow-hidden font-serif">
-      {/* Column 1: Case Text */}
-      <div className="flex h-full w-full flex-col border-r border-slate-200 bg-white md:w-1/3">
-        <header className="border-b bg-slate-900 px-6 py-4 text-white shadow-sm shrink-0">
+    <div className="flex h-screen w-full flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-md px-6 py-3">
+        <div className="flex items-center gap-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-sans text-slate-400 hover:text-white transition-colors mb-3"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary transition-all hover:bg-secondary/80 border border-border"
           >
-            <ArrowLeft size={12} />
-            Back to Cases
+            <ArrowLeft size={16} />
           </Link>
-          <div className="text-xs font-sans font-medium uppercase tracking-wider text-slate-300 mb-1">
-            {caseStudy.company.name} Case Study
-          </div>
-          <h1 className="text-xl font-bold leading-tight">{caseStudy.title}</h1>
-        </header>
-
-        <ScrollArea className="flex-1 p-6 md:p-8">
-          <article className="prose prose-slate prose-lg max-w-none prose-headings:font-serif prose-p:font-serif prose-p:leading-relaxed prose-p:text-slate-800">
-            <section className="mb-10">
-              <h2 className="text-2xl font-bold text-slate-900 border-b pb-2 mb-4">1. Opening Hook</h2>
-              <p>{caseStudy.hook}</p>
-            </section>
-
-            <section className="mb-10">
-              <h2 className="text-2xl font-bold text-slate-900 border-b pb-2 mb-4">2. Background</h2>
-              <p className="whitespace-pre-line">{caseStudy.background}</p>
-            </section>
-
-            <section className="mb-10">
-              <h2 className="text-2xl font-bold text-slate-900 border-b pb-2 mb-4">3. The Situation</h2>
-              <p className="whitespace-pre-line">{caseStudy.situation}</p>
-            </section>
-
-            <section className="mb-10">
-              <h2 className="text-2xl font-bold text-slate-900 border-b pb-2 mb-4">4. The Dilemma</h2>
-              <div className="bg-slate-50 p-6 border-l-4 border-slate-900 my-6">
-                <p className="font-medium text-xl leading-snug">{caseStudy.dilemma}</p>
-              </div>
-            </section>
-
-            {/* Discussion Questions */}
-            {caseStudy.questions.length > 0 && (
-              <section className="mb-10">
-                <h2 className="text-2xl font-bold text-slate-900 border-b pb-2 mb-4">Discussion Questions</h2>
-                <ol className="space-y-3 list-none pl-0">
-                  {caseStudy.questions.map((q, i) => (
-                    <li key={q.id} className="flex gap-3">
-                      <span className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-slate-900 text-white text-xs font-bold font-sans">
-                        {i + 1}
-                      </span>
-                      <p className="text-slate-800 leading-relaxed">{q.question}</p>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
-
-            {/* Teaching Note — hidden by default, toggled by client component */}
-            <TeachingNoteToggle teachingNote={caseStudy.teachingNote} />
-          </article>
-        </ScrollArea>
-      </div>
-
-      {/* Column 2: Financial Charts */}
-      <div className="flex h-full w-full flex-col border-r border-slate-200 bg-slate-50 md:w-1/3">
-        <header className="border-b bg-white px-6 py-4 shadow-sm shrink-0">
-          <h2 className="text-lg font-bold font-sans text-slate-800">Financial Exhibits</h2>
-          {caseStudy.exhibits.length > 0 && (
-            <p className="text-xs text-slate-500 font-sans mt-0.5">{caseStudy.exhibits.length} exhibit{caseStudy.exhibits.length > 1 ? "s" : ""}</p>
-          )}
-        </header>
-        <ScrollArea className="flex-1 p-6 font-sans">
-          {caseStudy.exhibits.length > 0 ? (
-            <FinancialCharts exhibits={caseStudy.exhibits} />
-          ) : (
-            <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-white p-6 text-center">
-              <p className="text-slate-500">No financial exhibits available.</p>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                {caseStudy.company.name}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {caseStudy.exhibits.length} exhibits · {caseStudy.questions.length} questions
+              </span>
             </div>
-          )}
-        </ScrollArea>
-      </div>
+            <h1 className="font-serif text-lg font-semibold leading-tight">{caseStudy.title}</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary transition-all hover:bg-secondary/80 border border-border">
+            <Share2 size={14} />
+          </button>
+          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary transition-all hover:bg-secondary/80 border border-border">
+            <Download size={14} />
+          </button>
+        </div>
+      </header>
 
-      {/* Column 3: Socratic Debate Chat */}
-      <div className="flex h-full w-full flex-col bg-white md:w-1/3">
-        <header className="border-b bg-white px-6 py-4 shadow-sm shrink-0 flex items-center justify-between">
-          <h2 className="text-lg font-bold font-sans text-slate-800">Socratic Debate</h2>
-          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-            AI Professor
-          </span>
-        </header>
-        <div className="flex-1 overflow-hidden font-sans flex flex-col">
-          <ChatInterface caseContext={caseStudy} />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex h-full w-full flex-col md:w-1/3 border-r border-border/60 bg-surface">
+          <div className="shrink-0 border-b border-border/40 bg-card/50 px-6 py-4">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <FileText size={14} />
+              <span>Case Narrative</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 md:p-8">
+            <article className="prose prose-slate prose-lg max-w-none 
+              prose-headings:font-serif prose-headings:font-semibold 
+              prose-p:font-serif prose-p:leading-relaxed prose-p:text-foreground/90
+              prose-strong:text-primary prose-a:text-primary">
+              <section className="mb-10 relative">
+                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-primary/60 to-transparent rounded-full" />
+                <h2 className="text-xl font-bold text-foreground mb-4 pl-2">1. Opening Hook</h2>
+                <p className="leading-relaxed text-foreground/85">{caseStudy.hook}</p>
+              </section>
+
+              <section className="mb-10 relative">
+                <h2 className="text-xl font-bold text-foreground mb-4">2. Background</h2>
+                <p className="whitespace-pre-line leading-relaxed text-foreground/85">{caseStudy.background}</p>
+              </section>
+
+              <section className="mb-10 relative">
+                <h2 className="text-xl font-bold text-foreground mb-4">3. The Situation</h2>
+                <p className="whitespace-pre-line leading-relaxed text-foreground/85">{caseStudy.situation}</p>
+              </section>
+
+              <section className="mb-10 relative">
+                <h2 className="text-xl font-bold text-foreground mb-4">4. The Dilemma</h2>
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 my-4">
+                  <p className="font-serif text-lg leading-snug text-foreground">{caseStudy.dilemma}</p>
+                </div>
+              </section>
+
+              {caseStudy.questions.length > 0 && (
+                <section className="mb-10">
+                  <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+                    <MessageSquarePlus size={20} />
+                    Discussion Questions
+                  </h2>
+                  <ol className="space-y-4 list-none pl-0">
+                    {caseStudy.questions.map((q, i) => (
+                      <li key={q.id} className="flex gap-4 p-4 rounded-xl bg-card border border-border/40 shadow-sm">
+                        <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                          {i + 1}
+                        </span>
+                        <p className="text-foreground/85 leading-relaxed">{q.question}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
+
+              <TeachingNoteToggle teachingNote={caseStudy.teachingNote} />
+            </article>
+          </div>
+        </div>
+
+        <div className="flex h-full w-full flex-col md:w-1/3 border-r border-border/60 bg-surface">
+          <div className="shrink-0 border-b border-border/40 bg-card/50 px-6 py-4">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <BarChart3 size={14} />
+              <span>Financial Exhibits</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            {caseStudy.exhibits.length > 0 ? (
+              <FinancialCharts exhibits={caseStudy.exhibits} />
+            ) : (
+              <div className="flex h-64 items-center justify-center rounded-2xl border-2 border-dashed border-border/40 bg-card/50 p-6 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <BarChart3 size={24} className="text-muted-foreground/50" />
+                  <p className="text-muted-foreground">No financial exhibits available.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex h-full w-full flex-col md:w-1/3 bg-surface">
+          <div className="shrink-0 border-b border-border/40 bg-card/50 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <Scroll size={14} />
+                <span>Socratic Discourse</span>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-chart-1/10 px-2.5 py-1 text-xs font-medium text-chart-1 ring-1 ring-chart-1/20">
+                Peer Analyst
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <ChatInterface caseContext={caseStudy} />
+          </div>
         </div>
       </div>
     </div>

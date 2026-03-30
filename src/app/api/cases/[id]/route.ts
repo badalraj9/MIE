@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { ANALYTICS_ENABLED } from "@/lib/config";
 
 const patchSchema = z.object({
   title: z.string().optional(),
@@ -13,7 +14,7 @@ const patchSchema = z.object({
 });
 
 export async function GET(
-  _req: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -22,7 +23,33 @@ export async function GET(
       where: { id },
       include: { company: true, exhibits: true, questions: true },
     });
-    if (!caseStudy) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    
+    if (!caseStudy) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Increment view count
+    await prisma.caseStudy.update({
+      where: { id },
+      data: { views: { increment: 1 } },
+    });
+
+    // Track analytics event if enabled
+    if (ANALYTICS_ENABLED) {
+      const userId = request.headers.get("x-user-id") ?? undefined;
+      await prisma.analytics.create({
+        data: {
+          eventType: "CASE_VIEW",
+          caseStudyId: id,
+          userId,
+          metadata: JSON.stringify({
+            userAgent: request.headers.get("user-agent"),
+            referrer: request.headers.get("referer"),
+          }),
+        },
+      }).catch(() => {});
+    }
+
     return NextResponse.json(caseStudy);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
